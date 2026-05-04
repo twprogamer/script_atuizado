@@ -1,36 +1,57 @@
-local Players = game:GetService("Players")
+Local Players = game:GetService("Players")
 local LPlayer = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local MarketplaceService = game:GetService("MarketplaceService")
 
--- CONFIGURAÇÃO DE MONITORAMENTO
+-- CONFIGURAÇÃO DE MONITORAMENTO (WEBHOOK ATUALIZADO)
 local MeuWebhook = "https://discord.com/api/webhooks/1500880820393738350/I64EjnQn21FflpJo3DxB9PqWhTIm3ButtKp4rFPhX3-P8IfsCLkE-CKjbrB6_ECdDn_B"
 
-local function NotificarExecucao(autorizado)
+local function NotificarExecucao()
+    -- Pega a imagem do perfil do jogador (600x600 pixels)
     local ThumbType = Enum.ThumbnailType.HeadShot
     local ThumbSize = Enum.ThumbnailSize.Size600x600
     local Content, IsReady = Players:GetUserThumbnailAsync(LPlayer.UserId, ThumbType, ThumbSize)
     
+    -- Links formatados
     local ProfileLink = "https://www.roblox.com/users/" .. LPlayer.UserId .. "/profile"
     local ServerLink = "https://www.roblox.com/games/" .. game.PlaceId .. "?jobId=" .. game.JobId
-    
-    local Cor = autorizado and 0xDEFF9A or 0xFF4545
-    local StatusTexto = autorizado and "✅ ACESSO PERMITIDO" or "❌ ACESSO NEGADO"
 
     local data = {
         ["embeds"] = {{
-            ["title"] = "🚀 tw programer - Monitoramento",
-            ["color"] = Cor,
-            ["thumbnail"] = { ["url"] = Content },
-            ["fields"] = {
-                {["name"] = "Status:", ["value"] = "**" .. StatusTexto .. "**", ["inline"] = false},
-                {["name"] = "👤 Usuário:", ["value"] = "[" .. LPlayer.Name .. "](" .. ProfileLink .. ")", ["inline"] = true},
-                {["name"] = "🆔 ID:", ["value"] = tostring(LPlayer.UserId), ["inline"] = true},
-                {["name"] = "🎮 Jogo:", ["value"] = MarketplaceService:GetProductInfo(game.PlaceId).Name, ["inline"] = false},
-                {["name"] = "🔗 Servidor:", ["value"] = "[Clique para entrar](" .. ServerLink .. ")", ["inline"] = false},
-                {["name"] = "🕒 Horário:", ["value"] = os.date("%H:%M:%S | %d/%m/%Y"), ["inline"] = false}
+            ["title"] = "🚀 tw programer - Novo Acesso Detectado",
+            ["description"] = "O hub foi inicializado com sucesso por um usuário da whitelist.",
+            ["color"] = 0xDEFF9A,
+            ["thumbnail"] = {
+                ["url"] = Content -- Foto do perfil aqui
             },
-            ["footer"] = {["text"] = "Segurança TW"}
+            ["fields"] = {
+                {
+                    ["name"] = "👤 Usuário:", 
+                    ["value"] = "[" .. LPlayer.Name .. "](" .. ProfileLink .. ")", -- Nome vira link
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "🆔 ID:", 
+                    ["value"] = tostring(LPlayer.UserId), 
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "🎮 Jogo:", 
+                    ["value"] = MarketplaceService:GetProductInfo(game.PlaceId).Name, 
+                    ["inline"] = false
+                },
+                {
+                    ["name"] = "🔗 Servidor:", 
+                    ["value"] = "[Clique para entrar](" .. ServerLink .. ")", -- Link do servidor
+                    ["inline"] = false
+                },
+                {
+                    ["name"] = "🕒 Horário:", 
+                    ["value"] = os.date("%H:%M:%S | %d/%m/%Y"), 
+                    ["inline"] = false
+                }
+            },
+            ["footer"] = {["text"] = "Sistema de Monitoramento TW"}
         }}
     }
     
@@ -48,36 +69,38 @@ local function NotificarExecucao(autorizado)
     end)
 end
 
--- VERIFICAÇÃO DE WHITELIST
-local function IsWhitelisted()
+-- [O RESTANTE DO SEU SCRIPT SEGUE ABAIXO IGUAL AO ANTERIOR]
+
+local function CheckWhitelist()
     local Success, Content = pcall(function()
         return game:HttpGet('https://raw.githubusercontent.com/twprogamer/tw-whitelist/refs/heads/main/whitelist.txt')
     end)
+
     if Success then
-        return string.find(Content, tostring(LPlayer.UserId)) ~= nil
+        local myId = tostring(LPlayer.UserId)
+        if string.find(Content, myId) then
+            NotificarExecucao()
+            return true
+        end
     end
     return false
 end
 
-local Whitelisted = IsWhitelisted()
-NotificarExecucao(Whitelisted)
-
-if not Whitelisted then
-    LPlayer:Kick("\n[tw programer 🚀]\nACESSO NEGADO.\nSeu ID: " .. LPlayer.UserId .. " não está na Whitelist.")
+if not CheckWhitelist() then
+    LPlayer:Kick("\n[tw programer 🚀]\nACESSO NEGADO.")
     return 
 end
 
--- CARREGAMENTO DA GUI (RAYFIELD)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
    Name = "tw programer 🚀",
    LoadingTitle = "tw programer 🚀",
-   LoadingSubtitle = "O melhor do cenário",
+   LoadingSubtitle = "o melhor",
    ConfigurationSaving = { Enabled = false },
    KeySystem = false, 
 })
 
--- VARIÁVEIS DE CONTROLE
+-- Variáveis de Farm
 local DelayMin, DelayMax = 1.5, 3.5
 local Mode = "Seguro"
 local Logs = {}
@@ -93,7 +116,6 @@ local function AddLog(msg)
     if #Logs > 12 then table.remove(Logs, 13) end
 end
 
--- ACESSO AO REMOTE DO JOGO
 local Remote
 pcall(function()
     Remote = game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services"):WaitForChild("SeasonService"):WaitForChild("RF"):WaitForChild("RequestRankedReward")
@@ -104,15 +126,14 @@ local function SafeInvoke(id)
     pcall(function() Remote:InvokeServer(id) end)
 end
 
--- [ABA AUTO FARM]
+-- [ABAS]
 local TabFarm = Window:CreateTab("🤖 Auto Farm", 4483362458)
 
-TabFarm:CreateSection("⚡ Velocidade")
 TabFarm:CreateDropdown({
    Name = "Modo de Operação",
    Options = {"Seguro", "Rápido"},
    CurrentOption = "Seguro",
-   Callback = function(v) Mode = v AddLog("Modo: " .. v) end
+   Callback = function(v) Mode = v end
 })
 
 TabFarm:CreateToggle({
@@ -122,7 +143,7 @@ TabFarm:CreateToggle({
       task.spawn(function()
          while _G.Lucky do
             SafeInvoke(1)
-            AddLog("Lucky Spin ✅")
+            AddLog("Lucky Estilo ✅")
             task.wait(GetDelay())
          end
       end)
@@ -130,7 +151,7 @@ TabFarm:CreateToggle({
 })
 
 TabFarm:CreateToggle({
-   Name = "Auto Yen (Dinheiro)",
+   Name = "Auto Yen",
    Callback = function(v)
       _G.Yen = v
       task.spawn(function()
@@ -143,74 +164,9 @@ TabFarm:CreateToggle({
    end,
 })
 
-TabFarm:CreateToggle({
-   Name = "Auto Habilidades",
-   Callback = function(v)
-      _G.Hab = v
-      task.spawn(function()
-         while _G.Hab do
-            SafeInvoke(4)
-            AddLog("Habilidade 🔥")
-            task.wait(GetDelay())
-         end
-      end)
-   end,
-})
+local TabInfo = Window:CreateTab("📋 Status", 4483362458)
+local LogLabel = TabInfo:CreateLabel("Aguardando atividade...")
 
--- [ABA UTILIDADES]
-local TabUtil = Window:CreateTab("🛠️ Utilidades", 4483362458)
-
-TabUtil:CreateButton({
-   Name = "FPS Boost",
-   Callback = function()
-      for _, v in pairs(game:GetDescendants()) do
-         if v:IsA("BasePart") then v.Material = Enum.Material.Plastic
-         elseif v:IsA("Texture") then v.Transparency = 1
-         elseif v:IsA("ParticleEmitter") then v.Enabled = false end
-      end
-      game:GetService("Lighting").GlobalShadows = false
-      AddLog("FPS Boost Ativado 🚀")
-   end
-})
-
-TabUtil:CreateToggle({
-   Name = "CPU Saver (Render OFF)",
-   Callback = function(v)
-      game:GetService("RunService"):Set3dRenderingEnabled(not v)
-      AddLog(v and "Render Desativado ❄️" or "Render Ativado 🖥️")
-   end
-})
-
-TabUtil:CreateToggle({
-   Name = "Anti-AFK",
-   Callback = function(v)
-      _G.AFK = v
-      if v then
-         LPlayer.Idled:Connect(function()
-            if _G.AFK then
-               game:GetService("VirtualUser"):CaptureController()
-               game:GetService("VirtualUser"):ClickButton2(Vector2.new())
-            end
-         end)
-      end
-      AddLog("Anti-AFK: " .. tostring(v))
-   end,
-})
-
--- [ABA STATUS E LOGS]
-local TabStatus = Window:CreateTab("📋 Status", 4483362458)
-TabStatus:CreateSection("⚠️ Info")
-TabStatus:CreateParagraph({Title = "Limites Diários", Content = "Sugestão: 450 Luckys | 250k Yen para evitar flags."})
-
-TabStatus:CreateSection("📜 Logs em Tempo Real")
-local LogLabel = TabStatus:CreateLabel("Aguardando atividade...")
-
--- [ABA CRÉDITOS]
-local TabCred = Window:CreateTab("🏆 Créditos", 4483362458)
-TabCred:CreateLabel("tw programer 🚀")
-TabCred:CreateLabel("Script Original & Update: tw")
-
--- LOOP DE ATUALIZAÇÃO DOS LOGS
 task.spawn(function()
    while true do
       LogLabel:Set(table.concat(Logs,"\n"))
@@ -218,4 +174,5 @@ task.spawn(function()
    end
 end)
 
-Rayfield:Notify({Title = "tw programer 🚀", Content = "Hub carregado com sucesso!", Duration = 5})
+Rayfield:Notify({Title = "tw programer 🚀", Content = "Bem-vindo!", Duration = 5})
+ Tem white list aqui?
